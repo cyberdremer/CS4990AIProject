@@ -1,0 +1,4 @@
+[{"name":"GeForce RTX 3060 12GB","price":289.99,
+  "memory":12,"core_clock":1320,"boost_clock":1777,"color":"Black","length":235},
+{"name":"GeForce RTX 3070","price":375,
+  "memory":12,"core_clock":1320,"boost_clock":1777,"color":"Black","length":235}]
