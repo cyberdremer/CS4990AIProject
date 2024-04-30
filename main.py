@@ -11,7 +11,6 @@ import PromptHelper
 from GUI.App import App
 
 
-
 def init_parts_list() -> {}:
     reader = JsonReader.JsonReader()
     parts_list = reader.read_in_data("ScrapedPCPartData")
@@ -24,8 +23,10 @@ def init_assistant_message(parts_list) -> str:
 
 
 def main():
-    JsonEditor.delete_mobo_entries("ScrapedPCPartData/motherboard.json")
-
+    parts = init_parts_list()
+    assistant_message = init_assistant_message(parts)
+    app = App(assistant_message)
+    app.mainloop()
 
 
 # Press the green button in the gutter to run the script.

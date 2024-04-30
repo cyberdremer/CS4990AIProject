@@ -1,12 +1,23 @@
+import threading
+
 import customtkinter
+from CTkMessagebox import CTkMessagebox
+
+from GUI import InputSanityCheck
+
 
 import JsonHelpers.JsonReader
 import PromptHelper.PromptHelper
-import  PromptHelper.PromptWriter
+import PromptHelper.PromptWriter
 import AIRelated
 
 
+class Messagebox(customtkinter.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master)
 
+    def incorrect_input(self, message):
+        warning_message = CTkMessagebox(title="Warning", message=message, option_1="Retry" ,master=self.master)
 
 
 class OutputTextFrame(customtkinter.CTkFrame):
@@ -44,7 +55,7 @@ class ComboboxFrame(customtkinter.CTkFrame):
         self.gpu_label = customtkinter.CTkLabel(self, text="GPU Vendor",
                                                 font=customtkinter.CTkFont(weight="bold"))
         self.gpu_label.grid(row=0, column=0)
-        self.gpu_combobox = customtkinter.CTkComboBox(self, values=["AMD", "NVIDIA", "INTEL",
+        self.gpu_combobox = customtkinter.CTkComboBox(self, values=["AMD", "NVIDIA",
                                                                     "NO PREFERENCE"])
         self.gpu_combobox.grid(row=1, column=0),
 
@@ -73,9 +84,10 @@ class ComboboxFrame(customtkinter.CTkFrame):
 
 
 class App(customtkinter.CTk):
-    def __init__(self):
+    def __init__(self, assistant_message):
         super().__init__()
         self.client = AIRelated.AI.AI()
+        self.assistant_message = assistant_message
 
         self.geometry("800x500")
         self.title("PC Build Chatbot")
@@ -102,20 +114,37 @@ class App(customtkinter.CTk):
         self.button = customtkinter.CTkButton(self.frame, command=self.generate_build, text="Generate Build")
         self.button.grid(row=1, column=0, padx=20, pady=(20, 5))
 
+        self.dialogue_box = Messagebox(self.frame)
+
     def generate_build(self):
-        self.output_frame.output_box.delete(0.0, 'end')
-        user_choices = self.combobox_frame.get_combobox_choices()
-        user_choices.append(self.entrybox_frame.get_entry())
-        user_prompt_dictionary = PromptHelper.PromptHelper.construct_user_prompt_dictionary(
-            user_choices)
-        user_prompt = PromptHelper.PromptHelper.construct_user_prompt(user_prompt_dictionary)
 
-        system_message = PromptHelper.PromptHelper.construct_system_message()
-        prompt_dictionary = PromptHelper.PromptHelper.construct_prompt_dictionary(user_prompt, system_message,
-                                                                                  )
-        ai_prompt = PromptHelper.PromptHelper.construct_input_for_ai(prompt_dictionary)
-        pc_build = self.client.get_completion(ai_prompt)
-        final_output = PromptHelper.PromptHelper.format_output(pc_build)
-        PromptHelper.PromptWriter.write_out_prompt(final_output)
+        try:
+            self.output_frame.output_box.delete(0.0, 'end')
+            user_choices = self.combobox_frame.get_combobox_choices()
+            user_budget = self.entrybox_frame.get_entry()
 
-        self.output_frame.output_box.insert("0.0", final_output)
+            if InputSanityCheck.check_valid(user_budget) is False:
+                raise TypeError
+
+            user_choices.append(user_budget)
+            ai_prompt = PromptHelper.PromptHelper.construct_final_prompt(user_choices, self.assistant_message)
+
+            ai_output = self.client.get_completion(ai_prompt)
+
+            final_output = PromptHelper.PromptHelper.format_output(ai_output)
+            self.output_frame.output_box.insert("0.0", final_output)
+            PromptHelper.PromptWriter.write_out_prompt(final_output)
+        except ValueError as valerr:
+            error_message = "There has been an issue in generating the build please try again."
+            self.output_frame.output_box.insert("0.0", error_message)
+            self.dialogue_box.incorrect_input(error_message)
+        except TypeError as typerr:
+            self.entrybox_frame.entry_box.delete(first_index=0, last_index=len(user_budget))
+            self.dialogue_box.incorrect_input("Invalid input, please try again!")
+
+    def generate_build_async(self):
+        thread = threading.Thread(target=self.generate_build)
+        thread.start()
+
+    def threaded_build(self):
+        self.generate_build_async()
