@@ -1,6 +1,7 @@
 import json
 import logging
-from logging import  *
+from logging import *
+import math
 
 delimiter = "####"
 item_delimter = "|"
@@ -48,8 +49,8 @@ def construct_user_prompt(user_choices):
 def construct_input_for_ai(ai_input):
     prompt = [{'role': 'system',
                'content': ai_input['system_message']},
-              {'role' : 'assistant',
-               'content' : ai_input['assistant_message']},
+              {'role': 'assistant',
+               'content': ai_input['assistant_message']},
               {'role': 'user',
                'content': f"{delimiter} {ai_input['user_message']} {delimiter}"}]
     return prompt
@@ -79,7 +80,6 @@ def construct_user_prompt_dictionary(args_list):
     return user_dictionary
 
 
-
 def format_output(ai_output) -> str:
     try:
         output = ai_output.replace("[", "").replace("]", "")
@@ -94,13 +94,11 @@ def format_output(ai_output) -> str:
                 price = "$" + price
                 final_output += name + ": " + price + "\n"
 
-        final_output += "\nTotal cost of build: $" + str(total_price)
+        final_output += "\nTotal cost of build: $" + str(round(total_price, 2))
         return final_output
     except ValueError as valerr:
         logging.error(valerr)
         raise
-
-
 
 
 def construct_final_prompt(user_choices, assistant_prompt) -> str:
@@ -111,14 +109,3 @@ def construct_final_prompt(user_choices, assistant_prompt) -> str:
     prompt_dic = construct_prompt_dictionary(user_prompt, system_message, assistant_prompt)
     ai_prompt = construct_input_for_ai(prompt_dic)
     return ai_prompt
-
-
-
-
-
-
-
-
-
-
-
